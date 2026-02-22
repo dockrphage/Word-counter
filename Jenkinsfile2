@@ -1,0 +1,16 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout code') {
+            steps {
+                checkout scmGit(branches: [[name: '*/feature/OnPrem-k8s-dep']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/dockrphage/Word-counter.git']])
+            }
+        }
+        stage('Building image') {
+            steps {
+                sh 'docker build -t word-counter .'
+            }
+        }
+    }
+}
