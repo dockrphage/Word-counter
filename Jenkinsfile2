@@ -12,5 +12,10 @@ pipeline {
                 sh 'docker build -t word-counter .'
             }
         }
+        stage('Pushing to Docker Hub') { 
+            steps { sh 'echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin' 
+                    sh 'docker tag word-counter:latest villedevops/word-counter:latest' 
+                    sh 'docker push villedevops/word-counter:latest' } 
+                    }
     }
 }
