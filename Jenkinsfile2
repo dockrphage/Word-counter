@@ -25,14 +25,17 @@ pipeline {
             '''
         }
 }
-        stage('K8S Deploy') {
-            steps {
-                sh '''
-                    export KUBECONFIG=/home/vagrant/.kube/config
-                    kubectl apply -f VAGRANT-Deployment.yaml
-                '''
+        stage('K8S Deploy') { 
+            steps { 
+                withCredentials([file(credentialsId: 'KUBECONFIG_VAGRANT', variable: 'KCFG')]) { 
+                    sh ''' 
+                        export KUBECONFIG=$KCFG 
+                        kubectl get nodes 
+                        kubectl apply -f VAGRANT-Deployment.yaml --validate=false 
+                        ''' 
+                    } 
+                } 
             }
-}
 
 
 }
