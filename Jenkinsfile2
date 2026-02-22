@@ -25,6 +25,15 @@ pipeline {
             '''
         }
 }
+        stage('K8S Deploy') {
+            steps {
+                sh '''
+                    export KUBECONFIG=/home/vagrant/.kube/config
+                    kubectl apply -f VAGRANT-Deployment.yaml
+                '''
+            }
+}
+
 
 }
 }
