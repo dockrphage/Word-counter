@@ -53,29 +53,7 @@ pipeline {
             }
         }
 
-        stage('Get Service URL') {
-            steps {
-                script {
-                    def serviceIp = ""
 
-                    timeout(time: 5, unit: 'MINUTES') {
-                        while(serviceIp == "") {
-                            serviceIp = sh(
-                                script: "kubectl get svc word-counter-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
-                                returnStdout: true
-                            ).trim()
-
-                            if(serviceIp == "") {
-                                echo "Waiting for MetalLB to assign an external IP..."
-                                sleep 10
-                            }
-                        }
-                    }
-
-                    echo "Service URL: http://${serviceIp}"
-                }
-            }
-        }
 
     }
 }
