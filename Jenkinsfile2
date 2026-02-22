@@ -13,17 +13,17 @@ pipeline {
             }
         }
         stage('Pushing to Docker Hub') {
-    environment {
-        DOCKERHUB_USERNAME = credentials('DOCKERHUB_USERNAME')
-        DOCKERHUB_PASSWORD = credentials('DOCKERHUB_PASSWORD')
-    }
-    steps {
-        sh '''
-            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-            docker tag word-counter:latest $DOCKERHUB_USERNAME/word-counter:latest
-            docker push $DOCKERHUB_USERNAME/word-counter:latest
-        '''
-    }
+            environment {
+            DOCKERHUB_USERNAME = credentials('DOCKERHUB_USERNAME')
+            DOCKERHUB_PASSWORD = credentials('DOCKERHUB_PASSWORD')
+        }
+        steps {
+            sh '''
+                echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                docker tag word-counter:latest $DOCKERHUB_USERNAME/word-counter:latest
+                docker push $DOCKERHUB_USERNAME/word-counter:latest
+            '''
+        }
 }
 
 }
