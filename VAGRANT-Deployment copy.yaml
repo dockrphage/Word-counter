@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: word-counter-container
-        image: villedevops/word-counter:latest
+        image: dockrphage/word-counter:latest
         ports:
         - containerPort: 80
 ---
