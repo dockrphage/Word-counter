@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     stages {
-        stage('Configure') {
+        stage('Checkout code') {
             steps {
-                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Aahil13/Word-counter']])
+                checkout scmGit(branches: [[name: '*/feature/OnPrem-k8s-dep']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/dockrphage/Word-counter.git']])
             }
         }
         stage('Building image') {
@@ -12,48 +12,54 @@ pipeline {
                 sh 'docker build -t word-counter .'
             }
         }
-        
-        stage('Pushing to ECR') {
-            steps {
-                withAWS(credentials: 'AWS-CREDS', region: 'us-east-1') {
-                    sh 'aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 313382416572.dkr.ecr.us-east-1.amazonaws.com'
-                    sh 'docker tag word-counter:latest 313382416572.dkr.ecr.us-east-1.amazonaws.com/jenkins:latest'
-                    sh 'docker push 313382416572.dkr.ecr.us-east-1.amazonaws.com/jenkins:latest'
-                }
-            }
+        stage('Pushing to Docker Hub') {
+            environment {
+            DOCKERHUB_USERNAME = credentials('DOCKERHUB_USERNAME')
+            DOCKERHUB_PASSWORD = credentials('DOCKERHUB_PASSWORD')
         }
-          
-        stage('K8S Deploy') {
-            steps {
-                script {
-                    withAWS(credentials: 'AWS-CREDS', region: 'us-east-1') {
-                        sh 'aws eks update-kubeconfig --name test-cluster --region us-east-1'
-                        sh 'kubectl apply -f EKS-Deployment.yaml'
-                    }
-                }
-            }
+        steps {
+            sh '''
+                echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+                docker tag word-counter:latest $DOCKERHUB_USERNAME/word-counter:latest
+                docker push $DOCKERHUB_USERNAME/word-counter:latest
+            '''
         }
-
+}
+        stage('K8S Deploy') { 
+            steps { 
+                withCredentials([file(credentialsId: 'KUBECONFIG_VAGRANT', variable: 'KCFG')]) { 
+                    sh ''' 
+                        export KUBECONFIG=$KCFG 
+                        kubectl get nodes 
+                        kubectl apply -f VAGRANT-Deployment.yaml --validate=false 
+                        ''' 
+                    } 
+                } 
+            }
         stage('Get Service URL') {
             steps {
                 script {
-                    def serviceUrl = ""
-                    // Wait for the LoadBalancer IP to be assigned
+                    def serviceIp = ""
+
                     timeout(time: 5, unit: 'MINUTES') {
-                        while(serviceUrl == "") {
-                            serviceUrl = sh(script: "kubectl get svc word-counter-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'", returnStdout: true).trim()
-                            if(serviceUrl == "") {
-                                echo "Waiting for the LoadBalancer IP..."
+                        while(serviceIp == "") {
+                            serviceIp = sh(
+                                script: "kubectl get svc word-counter-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}'",
+                                returnStdout: true
+                            ).trim()
+
+                            if(serviceIp == "") {
+                                echo "Waiting for MetalLB to assign an external IP..."
                                 sleep 10
                             }
                         }
                     }
-                    echo "Service URL: http://${serviceUrl}"
+
+                    echo "Service URL: http://${serviceIp}"
                 }
             }
         }
 
 
-
-    }
+}
 }
